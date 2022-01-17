@@ -55,6 +55,7 @@ class HttpHandler(context: Context, config: Config) {
         val mediaType = MediaType.get("application/json; charset=utf-8")
         val payloadString = gson.toJson(requestPayload)
         val body = RequestBody.create(mediaType, payloadString)
+        Timber.d("request Body: $payloadString")
 
         val request = Request.Builder().run {
             url(url) // TODO get the url from config file like in rocket

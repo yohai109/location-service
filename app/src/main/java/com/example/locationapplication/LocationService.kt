@@ -4,12 +4,14 @@ import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.LocationManager
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
+import android.telephony.TelephonyManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.google.gson.Gson
@@ -40,12 +42,12 @@ class LocationService : Service() {
         val hasFineLocationPermission = ActivityCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        ) == PERMISSION_GRANTED
 
         val hasCoarseLocationPermission = ActivityCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        ) == PERMISSION_GRANTED
 
         if (!hasFineLocationPermission && !hasCoarseLocationPermission) {
             // TODO handle no permission granted
@@ -62,7 +64,7 @@ class LocationService : Service() {
 
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-        val listener = LocationUpdateHandler {
+        val listener = LocationUpdateHandler(getUserInfo()) {
             httpHandler.sendLocation(it)
         }
         locationManager.requestLocationUpdates(
@@ -70,6 +72,52 @@ class LocationService : Service() {
             30000L,
             5.0f,
             listener
+        )
+    }
+
+    private fun getUserInfo(): UserInfo {
+        val smsPermission = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.READ_SMS
+        )
+        val phoneNumberPermission = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.READ_PHONE_NUMBERS
+        )
+
+        val phoneStatePermission = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.READ_PHONE_STATE
+        )
+
+        val wifiManagerService =
+            applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val telephonyManagerService =
+            getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+
+        val phoneNUmber = if (
+            phoneNumberPermission == PERMISSION_GRANTED &&
+            smsPermission == PERMISSION_GRANTED
+        ) {
+            telephonyManagerService?.line1Number
+        } else ""
+
+        val mac = if (
+            phoneStatePermission == PERMISSION_GRANTED) {
+            wifiManagerService?.connectionInfo?.macAddress
+        } else ""
+
+        val imei = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            telephonyManagerService?.imei ?: ""
+        } else {
+            telephonyManagerService?.deviceId ?: ""
+        }
+
+        return UserInfo(
+            androidVersion = Build.VERSION.RELEASE,
+            IMEI = imei,
+            mac = mac,
+            PhoneNumber = phoneNUmber
         )
     }
 

@@ -4,5 +4,6 @@ import android.location.Location
 
 data class RequestPayload(
     val location: Location,
-    val ts: Long
+    val ts: Long,
+    val userInfo: UserInfo
 )
