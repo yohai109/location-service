@@ -1,6 +1,7 @@
 package com.example.locationapplication
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.*
 import android.content.Context
 import android.content.Intent
@@ -23,7 +24,7 @@ class LocationService : Service() {
     private lateinit var httpHandler: HttpHandler
     private var iconNotification: Bitmap? = null
     private var notification: Notification? = null
-    var mNotificationManager: NotificationManager? = null
+    private var mNotificationManager: NotificationManager? = null
     private val mNotificationId = 123
 
     override fun onBind(intent: Intent): IBinder? {
@@ -51,6 +52,7 @@ class LocationService : Service() {
 
         if (!hasFineLocationPermission && !hasCoarseLocationPermission) {
             // TODO handle no permission granted
+            Timber.d("missing permissions")
             return
         }
         var config: Config
@@ -64,7 +66,7 @@ class LocationService : Service() {
 
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-        val listener = LocationUpdateHandler(getUserInfo()) {
+        val listener = LocationUpdateHandler(::getUserInfo) {
             httpHandler.sendLocation(it)
         }
         locationManager.requestLocationUpdates(
@@ -75,6 +77,7 @@ class LocationService : Service() {
         )
     }
 
+    @SuppressLint("HardwareIds")
     private fun getUserInfo(): UserInfo {
         val smsPermission = ActivityCompat.checkSelfPermission(
             this,
@@ -92,40 +95,56 @@ class LocationService : Service() {
 
         val wifiManagerService =
             applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+
         val telephonyManagerService =
             getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
 
         val phoneNUmber = if (
-            phoneNumberPermission == PERMISSION_GRANTED &&
+            phoneStatePermission == PERMISSION_GRANTED &&
             smsPermission == PERMISSION_GRANTED
         ) {
             telephonyManagerService?.line1Number
         } else ""
 
         val mac = if (
-            phoneStatePermission == PERMISSION_GRANTED) {
+            phoneNumberPermission == PERMISSION_GRANTED) {
             wifiManagerService?.connectionInfo?.macAddress
         } else ""
 
         val imei = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            telephonyManagerService?.imei ?: ""
+            try {
+                telephonyManagerService?.imei ?: ""
+            } catch (e: Exception) {
+                ""
+            }
         } else {
             telephonyManagerService?.deviceId ?: ""
         }
+
+//        telephonyManagerService?.
 
         return UserInfo(
             androidVersion = Build.VERSION.RELEASE,
             IMEI = imei,
             mac = mac,
-            PhoneNumber = phoneNUmber
+            PhoneNumber = phoneNUmber,
+            cellInfo = (telephonyManagerService?.allCellInfo ?: emptyList()).map {
+                it.asString()
+            },
+            networkOperator = telephonyManagerService?.networkOperator,
+            networkOperatorName = telephonyManagerService?.networkOperatorName
         )
     }
 
     private fun generateForegroundNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val intentMainLanding = Intent(this, MainActivity::class.java)
-            val pendingIntent =
-                PendingIntent.getActivity(this, 0, intentMainLanding, 0)
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intentMainLanding,
+                0
+            )
             iconNotification = BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
             if (mNotificationManager == null) {
                 mNotificationManager =
@@ -152,7 +171,6 @@ class LocationService : Service() {
             builder.apply {
                 setContentTitle(title)
                 setTicker(title)
-//                setContentText("Touch to open") //                    , swipe down for more options.
                 setSmallIcon(R.drawable.ic_location_24dp)
                 priority = NotificationCompat.PRIORITY_HIGH
                 setWhen(0)
@@ -162,7 +180,7 @@ class LocationService : Service() {
                 if (iconNotification != null) {
                     setLargeIcon(Bitmap.createScaledBitmap(iconNotification!!, 128, 128, false))
                 }
-                builder.color = resources.getColor(R.color.purple_200)
+                color = resources.getColor(R.color.purple_200, theme)
             }
             notification = builder.build()
             startForeground(mNotificationId, notification)

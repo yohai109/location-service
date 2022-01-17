@@ -3,32 +3,40 @@ package com.example.locationapplication
 import android.location.Location
 import android.location.LocationListener
 import android.os.Bundle
-import timber.log.Timber
 
 class LocationUpdateHandler(
-    private val userInfo: UserInfo,
+    private val userInfo: () -> UserInfo,
     private val callback: (RequestPayload) -> Unit
 ) : LocationListener {
     private lateinit var lastKnownLocation: Location
 
     override fun onLocationChanged(location: Location) {
-        Timber.d("received locations: $location")
         lastKnownLocation = location
+
+        val requestBody = RequestPayload(
+            LocationObj(
+                lastKnownLocation.latitude,
+                lastKnownLocation.longitude,
+                lastKnownLocation.altitude,
+                lastKnownLocation.extras.getInt("satellites")
+            ),
+            lastKnownLocation.time,
+            userInfo()
+        )
+
+        callback(requestBody)
     }
 
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-        Timber.d("location listener on status changed ")
-        Timber.d("provider: $provider")
-        Timber.d("extras: $extras")
-        Timber.d("extras is empty: ${extras?.isEmpty}")
-        Timber.d("extras keys: ${extras?.keySet()?.joinToString(",")}")
-        Timber.d("timestamp: ${System.currentTimeMillis()}")
-//        extras?.get(LocationListener })
-
         val requestBody = RequestPayload(
-            lastKnownLocation,
+            LocationObj(
+                lastKnownLocation.latitude,
+                lastKnownLocation.longitude,
+                lastKnownLocation.altitude,
+                lastKnownLocation.extras.getInt("satellites")
+            ),
             lastKnownLocation.time,
-            userInfo
+            userInfo()
         )
 
         callback(requestBody)
