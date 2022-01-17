@@ -1,12 +1,16 @@
 package com.example.locationapplication
 
+import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.LocationManager
 import android.os.Build
 import android.os.IBinder
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import timber.log.Timber
 
@@ -30,6 +34,31 @@ class LocationService : Service() {
     override fun onCreate() {
         super.onCreate()
         Timber.d("Location service on create()")
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        val listener = LocationUpdateHandler()
+
+        val hasFineLocationPermission = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val hasCoarseLocationPermission = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFineLocationPermission && !hasCoarseLocationPermission) {
+            // TODO handle no permission granted
+            return
+        }
+
+        locationManager.requestLocationUpdates(
+            LocationManager.GPS_PROVIDER,
+            30000L,
+            5.0f,
+            listener
+        )
     }
 
     private fun generateForegroundNotification() {
