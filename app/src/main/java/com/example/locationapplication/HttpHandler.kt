@@ -2,11 +2,9 @@ package com.example.locationapplication
 
 import android.content.Context
 import com.google.gson.Gson
-import okhttp3.MediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody
+import okhttp3.*
 import timber.log.Timber
+import java.io.IOException
 import java.security.KeyStore
 import java.util.*
 import javax.net.ssl.TrustManagerFactory
@@ -65,12 +63,20 @@ class HttpHandler(context: Context, config: Config) {
         }
 
         try {
-            val res = client.newCall(request).execute()
-            val statusCode = res.code()
-            res.close()
-            when (statusCode) {
-                200 -> Timber.d("everything is fine")
-            }
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    Timber.e(e, "sending location failed")
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val statusCode = response.code()
+                    response.close()
+                    when (statusCode) {
+                        200 -> Timber.d("everything is fine")
+                        else -> Timber.e("sending location failed with code: $statusCode")
+                    }
+                }
+            })
         } catch (e: Exception) {
             Timber.e(e)
         }
