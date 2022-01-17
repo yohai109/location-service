@@ -2,7 +2,7 @@ package com.example.locationapplication
 
 import android.location.Location
 
-data class RequestBody(
+data class RequestPayload(
     val location: Location,
     val ts: Long
 )

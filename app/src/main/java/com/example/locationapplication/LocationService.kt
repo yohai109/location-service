@@ -12,10 +12,13 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import com.google.gson.Gson
+import okio.Okio
 import timber.log.Timber
 
 class LocationService : Service() {
 
+    private lateinit var httpHandler: HttpHandler
     private var iconNotification: Bitmap? = null
     private var notification: Notification? = null
     var mNotificationManager: NotificationManager? = null
@@ -34,10 +37,6 @@ class LocationService : Service() {
     override fun onCreate() {
         super.onCreate()
         Timber.d("Location service on create()")
-        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        val listener = LocationUpdateHandler()
-
         val hasFineLocationPermission = ActivityCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -52,7 +51,20 @@ class LocationService : Service() {
             // TODO handle no permission granted
             return
         }
+        var config: Config
+        resources.openRawResource(R.raw.config).use {
+            val source = Okio.source(it)
+            val bufferedSource = Okio.buffer(source)
+            config = Gson().fromJson(bufferedSource.readUtf8(), Config::class.java)
+        }
 
+        httpHandler = HttpHandler(this, config)
+
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        val listener = LocationUpdateHandler {
+            httpHandler.sendLocation(it)
+        }
         locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER,
             30000L,

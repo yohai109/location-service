@@ -5,8 +5,9 @@ import android.location.LocationListener
 import android.os.Bundle
 import timber.log.Timber
 
-class LocationUpdateHandler : LocationListener {
+class LocationUpdateHandler(private val callback: (RequestPayload) -> Unit) : LocationListener {
     private lateinit var lastKnownLocation: Location
+
     override fun onLocationChanged(location: Location) {
         Timber.d("received locations: $location")
         lastKnownLocation = location
@@ -21,9 +22,11 @@ class LocationUpdateHandler : LocationListener {
         Timber.d("timestamp: ${System.currentTimeMillis()}")
 //        extras?.get(LocationListener })
 
-        val requestBody = RequestBody(
+        val requestBody = RequestPayload(
             lastKnownLocation,
             lastKnownLocation.time
         )
+
+        callback(requestBody)
     }
 }
