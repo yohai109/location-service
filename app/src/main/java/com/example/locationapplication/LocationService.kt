@@ -66,17 +66,21 @@ class LocationService : Service() {
 
         httpHandler = HttpHandler(this, config)
 
-        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-        val listener = LocationUpdateHandler(::getUserInfo) {
-            httpHandler.sendLocation(it)
+        val listener = LocationUpdateHandler(::getUserInfo) { locationBody ->
+            httpHandler.sendLocation(locationBody)
         }
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            30000L,
-            5.0f,
-            listener
-        )
+
+        httpHandler.getConfiguration {
+            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                it.minTimeMs,
+                it.minDistanceM,
+                listener
+            )
+        }
     }
 
     @SuppressLint("HardwareIds")
@@ -121,10 +125,6 @@ class LocationService : Service() {
             }
         } else {
             telephonyManagerService?.deviceId ?: ""
-        }
-
-        (telephonyManagerService?.allCellInfo ?: emptyList()).map {
-            (it as? CellInfoGsm)
         }
 
         return UserInfo(

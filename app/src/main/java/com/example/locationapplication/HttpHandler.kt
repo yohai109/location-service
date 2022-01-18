@@ -82,4 +82,31 @@ class HttpHandler(context: Context, config: Config) {
             Timber.e(e)
         }
     }
+
+    fun getConfiguration(callback: (ServiceConfig) -> Unit) {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Timber.e(e, "sending location failed")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val statusCode = response.code()
+                response.close()
+                when (statusCode) {
+                    200 -> {
+                        Timber.d("everything is fine")
+                        val responseBody = response.body()?.string()
+                        response.close()
+
+                        callback(gson.fromJson(responseBody ?: "", ServiceConfig::class.java))
+                    }
+                    else -> Timber.e("sending location failed with code: $statusCode")
+                }
+            }
+        })
+    }
 }
