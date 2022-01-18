@@ -134,13 +134,18 @@ class LocationService : Service() {
 
         val cellInfoLte =
             telephonyManagerService?.allCellInfo?.find { it is CellInfoLte } as? CellInfoLte
-        val lteSignalInfo = SignalInfo(
-            cellInfoLte?.cellSignalStrength?.rsrp,
-            cellInfoLte?.cellSignalStrength?.rsrq,
-            cellInfoLte?.cellIdentity?.ci,
-            cellInfoLte?.cellIdentity?.pci,
-            cellInfoLte?.cellIdentity?.additionalPlmns
-        )
+
+        val lteSignalInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            SignalInfo(
+                cellInfoLte?.cellSignalStrength?.rsrp,
+                cellInfoLte?.cellSignalStrength?.rsrq,
+                cellInfoLte?.cellIdentity?.ci,
+                cellInfoLte?.cellIdentity?.pci,
+                cellInfoLte?.cellIdentity?.additionalPlmns
+            )
+        } else {
+            cellInfoLte?.getSignalInfo()
+        }
 
 //        val cellInfoGsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm
 //        val gsmSignalInfo = SignalInfo(

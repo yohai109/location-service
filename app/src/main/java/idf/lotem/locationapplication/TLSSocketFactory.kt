@@ -12,7 +12,7 @@ import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 
 class TLSSocketFactory @Throws(KeyManagementException::class, NoSuchAlgorithmException::class)
-constructor(trustManagers: Array<out TrustManager>? = null): SSLSocketFactory() {
+constructor(trustManagers: Array<out TrustManager>? = null) : SSLSocketFactory() {
 
     private var internalSSLSocketFactory: SSLSocketFactory
 
@@ -46,7 +46,12 @@ constructor(trustManagers: Array<out TrustManager>? = null): SSLSocketFactory() 
 
 
     @Throws(IOException::class, UnknownHostException::class)
-    override fun createSocket(host: String, port: Int, localHost: InetAddress, localPort: Int): Socket? =
+    override fun createSocket(
+        host: String,
+        port: Int,
+        localHost: InetAddress,
+        localPort: Int
+    ): Socket? =
         enableTLSOnSocket(internalSSLSocketFactory.createSocket(host, port, localHost, localPort))
 
 
@@ -56,8 +61,20 @@ constructor(trustManagers: Array<out TrustManager>? = null): SSLSocketFactory() 
 
 
     @Throws(IOException::class)
-    override fun createSocket(address: InetAddress, port: Int, localAddress: InetAddress, localPort: Int): Socket? =
-        enableTLSOnSocket(internalSSLSocketFactory.createSocket(address, port, localAddress, localPort))
+    override fun createSocket(
+        address: InetAddress,
+        port: Int,
+        localAddress: InetAddress,
+        localPort: Int
+    ): Socket? =
+        enableTLSOnSocket(
+            internalSSLSocketFactory.createSocket(
+                address,
+                port,
+                localAddress,
+                localPort
+            )
+        )
 
 
     private fun enableTLSOnSocket(socket: Socket?): Socket? {
@@ -66,7 +83,6 @@ constructor(trustManagers: Array<out TrustManager>? = null): SSLSocketFactory() 
         }
         return socket
     }
-
 
 
 }
