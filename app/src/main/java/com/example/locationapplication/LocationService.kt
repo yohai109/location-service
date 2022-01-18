@@ -9,7 +9,6 @@ import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.LocationManager
-import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
 import android.telephony.CellInfoGsm
@@ -57,6 +56,7 @@ class LocationService : Service() {
             Timber.d("missing permissions")
             return
         }
+
         var config: Config
         resources.openRawResource(R.raw.config).use {
             val source = Okio.source(it)
@@ -89,18 +89,11 @@ class LocationService : Service() {
             this,
             Manifest.permission.READ_SMS
         )
-        val phoneNumberPermission = ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.READ_PHONE_NUMBERS
-        )
 
         val phoneStatePermission = ActivityCompat.checkSelfPermission(
             this,
             Manifest.permission.READ_PHONE_STATE
         )
-
-        val wifiManagerService =
-            applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
 
         val telephonyManagerService =
             getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
@@ -110,11 +103,6 @@ class LocationService : Service() {
             smsPermission == PERMISSION_GRANTED
         ) {
             telephonyManagerService?.line1Number
-        } else ""
-
-        val mac = if (
-            phoneNumberPermission == PERMISSION_GRANTED) {
-            wifiManagerService?.connectionInfo?.macAddress
         } else ""
 
         val imei = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -127,14 +115,36 @@ class LocationService : Service() {
             telephonyManagerService?.deviceId ?: ""
         }
 
+        Timber.d("simserial number: ${telephonyManagerService?.simSerialNumber}")
+        Timber.d("simserial number: ${telephonyManagerService?.subscriberId}")
+
+        val cellInfoLte = telephonyManagerService?.allCellInfo?.find { it is CellInfoLte } as? CellInfoLte
+        val lteSignalInfo = SignalInfo(
+            cellInfoLte?.cellSignalStrength?.rsrp,
+            cellInfoLte?.cellSignalStrength?.rsrq,
+            cellInfoLte?.cellIdentity?.ci,
+            cellInfoLte?.cellIdentity?.pci,
+            cellInfoLte?.cellIdentity?.additionalPlmns
+        )
+
+//        val cellInfoGsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm
+//        val gsmSignalInfo = SignalInfo(
+//            cellInfoGsm?.cellSignalStrength?.rsrp,
+//            cellInfoGsm?.cellSignalStrength?.rsrq,
+//            cellInfoGsm?.,
+//            cellInfoGsm?.cellSignalStrength?.,
+//            cellInfoGsm?.cellIdentity?.additionalPlmns
+//        )
+
         return UserInfo(
             androidVersion = Build.VERSION.RELEASE,
             IMEI = imei,
-            mac = mac,
+            imsi=telephonyManagerService?.subscriberId,
             PhoneNumber = phoneNUmber,
             networkInfo = NetworkInfo(
-                gsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm,
-                lte = telephonyManagerService?.allCellInfo?.find { it is CellInfoLte } as? CellInfoLte
+//                gsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm,
+                null,
+                lte = lteSignalInfo
             ),
             networkOperator = telephonyManagerService?.networkOperator,
             networkOperatorName = telephonyManagerService?.networkOperatorName

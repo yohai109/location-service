@@ -1,8 +1,5 @@
 package com.example.locationapplication
 
-import android.telephony.CellInfoGsm
-import android.telephony.CellInfoLte
-
 data class RequestPayload(
     val location: LocationObj,
     val ts: Long,
@@ -11,8 +8,8 @@ data class RequestPayload(
 
 data class UserInfo(
     val androidVersion: String?,
-    val mac: String?,
     val IMEI: String?,
+    val imsi: String?,
     val PhoneNumber: String?,
     val networkOperator: String?,
     val networkOperatorName: String?,
@@ -20,8 +17,8 @@ data class UserInfo(
 )
 
 data class NetworkInfo(
-    val gsm: CellInfoGsm?,
-    val lte: CellInfoLte?
+    val gsm: SignalInfo?,
+    val lte: SignalInfo?
 )
 
 data class LocationObj(
@@ -29,4 +26,12 @@ data class LocationObj(
     val longitude: Double,
     val altitude: Double,
     val satellites: Int
+)
+
+data class SignalInfo(
+    val rsrp: Int?,
+    val rsrq: Int?,
+    val cellId: Int?,
+    val pci: Int?,
+    val plmn: Set<String>?,
 )
