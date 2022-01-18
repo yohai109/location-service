@@ -1,4 +1,4 @@
-package com.example.locationapplication
+package idf.lotem.locationapplication
 
 data class RequestPayload(
     val location: LocationObj,
@@ -13,7 +13,8 @@ data class UserInfo(
     val PhoneNumber: String?,
     val networkOperator: String?,
     val networkOperatorName: String?,
-    val networkInfo: NetworkInfo
+    val networkInfo: NetworkInfo,
+    val batteryLevel: Int?
 )
 
 data class NetworkInfo(

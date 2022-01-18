@@ -1,4 +1,4 @@
-package com.example.locationapplication
+package idf.lotem.locationapplication
 
 data class ServiceConfig(
     val minTimeMs: Long,

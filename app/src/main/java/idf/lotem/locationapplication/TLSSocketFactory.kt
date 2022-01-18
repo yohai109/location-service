@@ -1,4 +1,4 @@
-package com.example.locationapplication
+package idf.lotem.locationapplication
 
 import java.io.IOException
 import java.net.InetAddress

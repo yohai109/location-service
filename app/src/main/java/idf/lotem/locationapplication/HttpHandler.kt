@@ -1,4 +1,4 @@
-package com.example.locationapplication
+package idf.lotem.locationapplication
 
 import android.content.Context
 import com.google.gson.Gson
@@ -94,9 +94,8 @@ class HttpHandler(context: Context, config: Config) {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val statusCode = response.code()
-                response.close()
-                when (statusCode) {
+                Timber.d("getConfiguration onResponse")
+                when (val statusCode = response.code()) {
                     200 -> {
                         Timber.d("everything is fine")
                         val responseBody = response.body()?.string()

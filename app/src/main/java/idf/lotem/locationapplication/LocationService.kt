@@ -1,22 +1,26 @@
-package com.example.locationapplication
+package idf.lotem.locationapplication
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.*
-import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.LocationManager
+import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
-import android.telephony.CellInfoGsm
 import android.telephony.CellInfoLte
 import android.telephony.TelephonyManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okio.Okio
 import timber.log.Timber
 
@@ -27,6 +31,9 @@ class LocationService : Service() {
     private var notification: Notification? = null
     private var mNotificationManager: NotificationManager? = null
     private val mNotificationId = 123
+
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.Main + job)
 
     override fun onBind(intent: Intent): IBinder? {
         return null
@@ -72,15 +79,22 @@ class LocationService : Service() {
         }
 
         httpHandler.getConfiguration {
-            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                it.minTimeMs,
-                it.minDistanceM,
-                listener
-            )
+            Timber.d("getConfiguration call back")
+            val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+            scope.launch {
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    it.minTimeMs,
+                    it.minDistanceM,
+                    listener
+                )
+            }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
     }
 
     @SuppressLint("HardwareIds")
@@ -96,7 +110,7 @@ class LocationService : Service() {
         )
 
         val telephonyManagerService =
-            getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+            getSystemService(TELEPHONY_SERVICE) as? TelephonyManager
 
         val phoneNUmber = if (
             phoneStatePermission == PERMISSION_GRANTED &&
@@ -118,7 +132,8 @@ class LocationService : Service() {
         Timber.d("simserial number: ${telephonyManagerService?.simSerialNumber}")
         Timber.d("simserial number: ${telephonyManagerService?.subscriberId}")
 
-        val cellInfoLte = telephonyManagerService?.allCellInfo?.find { it is CellInfoLte } as? CellInfoLte
+        val cellInfoLte =
+            telephonyManagerService?.allCellInfo?.find { it is CellInfoLte } as? CellInfoLte
         val lteSignalInfo = SignalInfo(
             cellInfoLte?.cellSignalStrength?.rsrp,
             cellInfoLte?.cellSignalStrength?.rsrq,
@@ -139,7 +154,7 @@ class LocationService : Service() {
         return UserInfo(
             androidVersion = Build.VERSION.RELEASE,
             IMEI = imei,
-            imsi=telephonyManagerService?.subscriberId,
+            imsi = telephonyManagerService?.subscriberId,
             PhoneNumber = phoneNUmber,
             networkInfo = NetworkInfo(
 //                gsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm,
@@ -147,7 +162,8 @@ class LocationService : Service() {
                 lte = lteSignalInfo
             ),
             networkOperator = telephonyManagerService?.networkOperator,
-            networkOperatorName = telephonyManagerService?.networkOperatorName
+            networkOperatorName = telephonyManagerService?.networkOperatorName,
+            batteryLevel = getBatteryLevel()
         )
     }
 
@@ -163,7 +179,7 @@ class LocationService : Service() {
             iconNotification = BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
             if (mNotificationManager == null) {
                 mNotificationManager =
-                    this.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    this.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 assert(mNotificationManager != null)
@@ -200,5 +216,14 @@ class LocationService : Service() {
             notification = builder.build()
             startForeground(mNotificationId, notification)
         }
+    }
+
+    private fun getBatteryLevel(): Int {
+        val iFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val batteryStatus: Intent? = registerReceiver(null, iFilter)
+        val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+        val batteryPct = level / scale.toDouble()
+        return (batteryPct * 100).toInt()
     }
 }

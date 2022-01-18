@@ -1,4 +1,4 @@
-package com.example.locationapplication
+package idf.lotem.locationapplication
 
 import android.app.Application
 import timber.log.Timber
