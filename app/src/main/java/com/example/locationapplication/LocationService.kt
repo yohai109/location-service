@@ -12,6 +12,8 @@ import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
+import android.telephony.CellInfoGsm
+import android.telephony.CellInfoLte
 import android.telephony.TelephonyManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -121,16 +123,19 @@ class LocationService : Service() {
             telephonyManagerService?.deviceId ?: ""
         }
 
-//        telephonyManagerService?.
+        (telephonyManagerService?.allCellInfo ?: emptyList()).map {
+            (it as? CellInfoGsm)
+        }
 
         return UserInfo(
             androidVersion = Build.VERSION.RELEASE,
             IMEI = imei,
             mac = mac,
             PhoneNumber = phoneNUmber,
-            cellInfo = (telephonyManagerService?.allCellInfo ?: emptyList()).map {
-                it.asString()
-            },
+            networkInfo = NetworkInfo(
+                gsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm,
+                lte = telephonyManagerService?.allCellInfo?.find { it is CellInfoLte } as? CellInfoLte
+            ),
             networkOperator = telephonyManagerService?.networkOperator,
             networkOperatorName = telephonyManagerService?.networkOperatorName
         )
@@ -155,11 +160,11 @@ class LocationService : Service() {
                 mNotificationManager?.createNotificationChannelGroup(
                     NotificationChannelGroup("chats_group", "Chats")
                 )
-                val notificationChannel =
-                    NotificationChannel(
-                        "service_channel", "Service Notifications",
-                        NotificationManager.IMPORTANCE_MIN
-                    )
+                val notificationChannel = NotificationChannel(
+                    "service_channel",
+                    "Service Notifications",
+                    NotificationManager.IMPORTANCE_MIN
+                )
                 notificationChannel.enableLights(false)
                 notificationChannel.lockscreenVisibility = Notification.VISIBILITY_SECRET
                 mNotificationManager?.createNotificationChannel(notificationChannel)
