@@ -17,8 +17,7 @@ fun CellInfoLte.getSignalInfo(): SignalInfo {
     val plmn = if (cellIdentity.mcc == Integer.MAX_VALUE || cellIdentity.mnc == Integer.MAX_VALUE) {
         "0"
     } else {
-        val strTemp: String = cellIdentity.mcc.toString() + cellIdentity.mnc.toString()
-        strTemp
+        cellIdentity.mcc.toString() + cellIdentity.mnc.toString()
     }
 
     return SignalInfo(
