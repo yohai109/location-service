@@ -147,22 +147,12 @@ class LocationService : Service() {
             cellInfoLte?.getSignalInfo()
         }
 
-//        val cellInfoGsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm
-//        val gsmSignalInfo = SignalInfo(
-//            cellInfoGsm?.cellSignalStrength?.rsrp,
-//            cellInfoGsm?.cellSignalStrength?.rsrq,
-//            cellInfoGsm?.,
-//            cellInfoGsm?.cellSignalStrength?.,
-//            cellInfoGsm?.cellIdentity?.additionalPlmns
-//        )
-
         return UserInfo(
             androidVersion = Build.VERSION.RELEASE,
             IMEI = imei,
             imsi = telephonyManagerService?.subscriberId,
             PhoneNumber = phoneNUmber,
             networkInfo = NetworkInfo(
-//                gsm = telephonyManagerService?.allCellInfo?.find { it is CellInfoGsm } as? CellInfoGsm,
                 null,
                 lte = lteSignalInfo
             ),
